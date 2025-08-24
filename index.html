@@ -3,11 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>剑网3画饼记录系统 </title>
+  <title>剑网3画饼记录系统</title>
   <style>
-    :root{
-      --bg:#0b0d10;--panel:#11161b;--muted:#8aa0b3;--text:#e7eef5;--brand:#6aa3ff;--ok:#2ecc71;--warn:#d35400;--bad:#e74c3c;--black:#e7eef5;--chip:#22303d;--chip-border:#2e3f51;--border:#1f2a36
-    }
+    :root{ --bg:#0b0d10; --panel:#11161b; --muted:#8aa0b3; --text:#e7eef5; --brand:#6aa3ff; --ok:#2ecc71; --warn:#d35400; --bad:#e74c3c; --black:#e7eef5; --chip:#22303d; --chip-border:#2e3f51; --border:#1f2a36 }
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:14px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial}
     a{color:var(--brand);text-decoration:none}
     a:hover{text-decoration:underline}
@@ -20,55 +18,29 @@
     .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
     .stat{background:#0f141a;border:1px solid #233040;border-radius:12px;padding:10px 12px;text-align:center;font-weight:700}
-    .c-black{color:var(--black)}
-    .c-green{color:var(--ok)}
-    .c-red{color:var(--bad)}
-    .c-brown{color:var(--warn)}
+    .c-black{color:var(--black)} .c-green{color:var(--ok)} .c-red{color:var(--bad)} .c-brown{color:var(--warn)}
+
     .pct{color:var(--muted);display:flex;gap:18px;flex-wrap:wrap;padding:8px 2px 0}
-
-/* 统计图布局 */
-.chartRow{display:flex;gap:24px;align-items:center;margin-top:10px}
-.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;color:#cdd9e5}
-.legend li{font-size:14px}
-.legend .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;border:1px solid #233040;vertical-align:middle}
-.legend .val{font-weight:800;color:var(--text)}
-
+    /* 统计图布局 */
+    .chartRow{display:flex;gap:24px;align-items:center;margin-top:10px}
+    .legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;color:#cdd9e5}
+    .legend li{font-size:14px}
+    .legend .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;border:1px solid #233040;vertical-align:middle}
+    .legend .val{font-weight:800;color:var(--text)}
 
     .tagbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
-/* 让标签气泡内不换行，只在气泡之间换行 */
-.chip{
-  background:var(--chip);
-  border:1px solid var(--chip-border);
-  padding:4px 10px;
-  border-radius:999px;
-  color:#c7d6e6;
-  cursor:pointer;
-  user-select:none;
-
-  /* 关键：禁止在 CJK 字符之间断行 */
-  display:inline-flex;
-  align-items:center;
-  white-space:nowrap;
-  word-break:keep-all;
-  line-height:1.1;
-}
-
-/* 用于表格“标签”那一列的内层容器 */
-.tags{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-
+    /* 让标签气泡内不换行，只在气泡之间换行 */
+    .chip{background:var(--chip);border:1px solid var(--chip-border);padding:4px 10px;border-radius:999px;color:#c7d6e6;cursor:pointer;user-select:none;display:inline-flex;align-items:center;white-space:nowrap;word-break:keep-all;line-height:1.1}
+    .tags{display:flex;flex-wrap:wrap;gap:8px}
     .chip.active{outline:2px solid var(--brand)}
 
-    table{width:100%;border-collapse:collapse}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
     th,td{padding:10px 8px;border-bottom:1px dashed #233040;vertical-align:top}
-    th{color:#b9c9da;text-align:left;position:sticky;top:0;background:var(--panel)}
+    th{color:#b9c9da;text-align:left;position:sticky;top:0;background:var(--panel);white-space:nowrap}
     tr:hover{background:#0f151b}
     .big{font-weight:800}
     .meta{color:var(--muted);font-size:12px}
-    .note{color:#d7e6ff}
+    .note{color:#d7e6ff;word-break:break-all}
     .badge{font-size:12px;color:#b7c8db}
 
     .state-green{color:var(--ok);font-weight:700}
@@ -93,7 +65,7 @@
       <div class="meta" id="version"></div>
     </header>
 
-    <!-- 数据统计（两行） -->
+    <!-- 统计面板 -->
     <section class="panel" id="statPanel">
       <div class="stats">
         <div class="stat c-black">总饼数 <span id="s-total">0</span></div>
@@ -101,7 +73,12 @@
         <div class="stat c-red">烂尾 <span id="s-bad">0</span></div>
         <div class="stat c-brown">未到期 <span id="s-pending">0</span></div>
       </div>
-      <div class="chartRow">   <canvas id="pie" width="360" height="240" style="background:#0f141a;border:1px solid #233040;border-radius:12px"></canvas>   <ul class="legend" id="legendList"></ul> </div>
+      <!-- 汇总百分比行（之前缺失，导致脚本 set innerHTML 到 null 报错） -->
+      <div class="pct" id="s-pct"></div>
+      <div class="chartRow">
+        <canvas id="pie" width="360" height="240" style="background:#0f141a;border:1px solid #233040;border-radius:12px"></canvas>
+        <ul class="legend" id="legendList"></ul>
+      </div>
     </section>
 
     <!-- 标签筛选 -->
@@ -116,12 +93,12 @@
         <table id="tbl">
           <thead>
             <tr>
-              <th style="width:30%">画饼内容</th>
-              <th style="width:15%">画饼时间</th>
-              <th style="width:20%">标签</th>
-              <th style="width:10%">是否承诺完成时间</th>
-              <th style="width:15%">画饼现状</th>
-              <th style="width:10%">备注</th>
+              <th style="width:36%" title="承诺标题 + 详细内容">画饼内容</th>
+              <th style="width:14%" title="承诺时间">画饼时间</th>
+              <th style="width:22%" title="标签，可多选">标签</th>
+              <th style="width:12%" title="是否约定完成日期">是否承诺完成时间</th>
+              <th style="width:10%" title="根据时间自动计算现状">画饼现状</th>
+              <th style="width:16%" title="备注与证据链接">备注</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -143,10 +120,15 @@
 p_2025_0001	修复bug	我们计划在一周内修复50个bug，来源是……	2025-08-24	是	2025-08-31	#bug修复|#外观优化|#布料		等待测试
 ============================= */
 
-const fallbackText = `id	title	content	promised_at	is_timed	due_at	tags	completed_at	notes
-p_2025_0001	修复bug	我们计划在一周内修复50个bug，来源是……	2025-08-24	是	2025-08-31	#bug修复|#外观优化|#布料		等待测试
-p_2025_0002	反外挂数据公开	9月底前上线反外挂2.0，并公开封禁数据	2025-07-01	是	2025-09-30	#反外挂	2025-10-02	已发布统计
-p_2025_0003	角色外观优化	将改进材质	2025-07-12	否		#外观优化		—`;
+const fallbackText = `id\ttitle\tcontent\tpromised_at\tis_timed\tdue_at\ttags\tcompleted_at\tnotes
+p_2025_0001\t修复bug\t我们计划在一周内修复50个bug，来源是……\t2025-08-24\t是\t2025-08-31\t#bug修复|#外观优化|#布料\t\t等待测试
+p_2025_0002\t反外挂数据公开\t9月底前上线反外挂2.0，并公开封禁数据\t2025-07-01\t是\t2025-09-30\t#反外挂\t2025-10-02\t已发布统计
+p_2025_0003\t角色外观优化\t将改进材质\t2025-07-12\t否\t\t#外观优化\t\t—`;
+
+// ------- DOM 安全助手：避免因缺失元素而抛错 -------
+const $ = (id)=> document.getElementById(id);
+const setText = (id, text)=>{ const el=$(id); if(el) el.textContent = text; else console.warn('[缺失元素]', id); };
+const setHTML = (id, html)=>{ const el=$(id); if(el) el.innerHTML = html; else console.warn('[缺失元素]', id); };
 
 // -------- 读取：优先 data.tsv，其次 data.csv --------
 async function loadDataText(){
@@ -164,14 +146,13 @@ async function loadDataText(){
 
 // -------- 解析：自动判断分隔符，并对 CSV 处理引号/逗号 --------
 function parseTable(text){
-
   const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
   if (!lines.length) return [];
 
   // 分隔符选择：首行含 Tab => TSV；否则在逗号/分号里二选一
   const headerLine = lines[0];
-  let delim = '	';
-  if (!/	/.test(headerLine)) {
+  let delim = '\t';
+  if (!/\t/.test(headerLine)) {
     const count = (s, ch) => (s.split(ch).length - 1);
     const comma = count(headerLine, ',');
     const semi  = count(headerLine, ';');
@@ -180,15 +161,13 @@ function parseTable(text){
 
   // 单行切分：TSV 直接 split，CSV/SSV 用 RFC4180 兼容解析
   const splitLine = (line) => {
-    if (delim === '	') return line.split('	');
+    if (delim === '\t') return line.split('\t');
     const out = []; let cur = ''; let q = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (q) {
-        if (ch === '"') {
-          if (line[i + 1] === '"') { cur += '"'; i++; }
-          else { q = false; }
-        } else cur += ch;
+        if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else { q = false; } }
+        else cur += ch;
       } else {
         if (ch === '"') q = true;
         else if (ch === delim) { out.push(cur); cur = ''; }
@@ -201,13 +180,12 @@ function parseTable(text){
 
   // 表头 & BOM 处理
   let header = splitLine(lines[0]).map(h => h.trim());
-  if (header.length) header[0] = header[0].replace(/^﻿/, '');
+  if (header.length) header[0] = header[0].replace(/^\ufeff/, '');
 
   // 行转对象；tags 用 | 分隔
   return lines.slice(1).map(line => {
     const cells = splitLine(line);
-    const o = {};
-    header.forEach((h, i) => o[h] = (cells[i] ?? '').trim());
+    const o = {}; header.forEach((h, i) => o[h] = (cells[i] ?? '').trim());
     o.tags = o.tags ? o.tags.split('|').map(s => s.trim()).filter(Boolean) : [];
     return o;
   });
@@ -224,7 +202,7 @@ function computeState(row){
   const promised=d(row.promised_at);
   const due=d(row.due_at);
   const completed=d(row.completed_at);
-  const isTimed=/^是|true$/i.test(row.is_timed||'');
+  const isTimed=/^(是|true)$/i.test(row.is_timed||'');
   if(!isTimed || !due){
     const days=daysBetween(promised,now)??0;
     return {code:1,label:'未定期',color:'red',text:`已画饼${days}天`};
@@ -251,6 +229,7 @@ function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 
 function renderTable(rows){
   const tbody=document.querySelector('#tbl tbody');
+  if(!tbody){ console.warn('缺少表格容器 #tbl tbody'); return; }
   tbody.innerHTML='';
   rows.forEach(r=>{
     const st=computeState(r);
@@ -263,14 +242,10 @@ function renderTable(rows){
     c2.textContent=fmtDate(r.promised_at);
 
     const c3=document.createElement('td');
-    c3.innerHTML = `<div class="tags">${
-  (r.tags||[]).map(t=>`<span class="chip" style="cursor:default">${esc(t)}</span>`).join('')
-}</div>`;
-
-
+    c3.innerHTML = `<div class="tags">${(r.tags||[]).map(t=>`<span class="chip" style="cursor:default">${esc(t)}</span>`).join('')}</div>`;
 
     const c4=document.createElement('td');
-    const timed=(/^是|true$/i.test(r.is_timed||'')) && r.due_at; 
+    const timed=(/^(是|true)$/i.test(r.is_timed||'')) && r.due_at; 
     c4.textContent=timed? '是':'否';
 
     const c5=document.createElement('td');
@@ -283,13 +258,14 @@ function renderTable(rows){
     tr.append(c1,c2,c3,c4,c5,c6);
     tbody.appendChild(tr);
   });
-  document.getElementById('count').textContent=rows.length;
+  setText('count', rows.length);
 }
 
 function buildTagbar(all){
   const set=new Set();
   all.forEach(r=> (r.tags||[]).forEach(t=>set.add(t)) );
-  const bar=document.getElementById('tagbar');
+  const bar=$('tagbar');
+  if(!bar) return;
   bar.innerHTML='';
   [...set].sort().forEach(tag=>{
     const s=document.createElement('span');
@@ -309,67 +285,37 @@ function applyFilter(all){
   updateStats(view);
 }
 
-function updateStats(view){
-  const total=view.length;
-  const counts={1:0,2:0,3:0,4:0,5:0}; // 未定期/逾期完成/按时完成/进行中/烂尾
-  view.forEach(r=>{ counts[computeState(r).code]++; });
-
-  const done = counts[2]+counts[3];
-  document.getElementById('s-total').textContent=total;
-  document.getElementById('s-done').textContent=done;
-  document.getElementById('s-bad').textContent=counts[5];
-  document.getElementById('s-pending').textContent=counts[4];
-
-  const pct=(n,d)=> d? Math.round(n*1000/d)/10:0;
-  const impl=pct(done,total), badr=pct(counts[5],total), timer=pct(total-(counts[1]||0),total);
-  document.getElementById('s-pct').innerHTML=`画饼实现率：${impl}%  ·  烂尾率：${badr}%  ·  承诺定时率：${timer}%`;
-
-  // 画饼
-  drawPie(counts);
-
-  // 右侧图例百分比
-  const legend = document.getElementById('legendList');
-  const names = {3:'按时出锅',2:'逾期出锅',4:'正在烘烤',5:'烂尾率',1:'吹毛率'};
-  const colors = {3:'#1f9d55',2:'#8bd28b',4:'#9aa7b2',5:'#e74c3c',1:'#ffffff'};
-  const seq=[3,2,4,5,1];
-  legend.innerHTML = seq.map(code =>
-    `<li><span class="dot" style="background:${colors[code]}"></span>${names[code]}：<span class="val">${pct(counts[code], total)}%</span></li>`
-  ).join('');
-}
-
-
 function drawPie(counts){
-  const canvas = document.getElementById('pie'); if(!canvas) return;
+  const canvas = $('pie'); if(!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0,0,canvas.width,canvas.height);
-
   const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
-  const seq = [3,2,4,5,1]; // 绘制顺序：按时出锅/逾期出锅/正在烘烤/烂尾/吹毛
+  const seq = [3,2,4,5,1]; // 按时/逾期/进行中/烂尾/未定期
   const colors = {3:'#1f9d55',2:'#8bd28b',4:'#9aa7b2',5:'#e74c3c',1:'#ffffff'};
-
-  const cx = canvas.width/2, cy = canvas.height/2;
-  const r = Math.min(cx,cy)-12;
-  let start = -Math.PI/2;
-
-  seq.forEach(code=>{
-    const val = counts[code]||0;
-    const ang = (val/total)*Math.PI*2;
-    ctx.beginPath(); ctx.moveTo(cx,cy);
-    ctx.arc(cx,cy,r,start,start+ang,false);
-    ctx.closePath();
-    ctx.fillStyle = colors[code]; ctx.fill();
-    if(code===1){ ctx.strokeStyle='#233040'; ctx.lineWidth=1; ctx.stroke(); } // 白色扇形描边，避免融到底色
-    start += ang;
-  });
+  const cx = canvas.width/2, cy = canvas.height/2; const r = Math.min(cx,cy)-12; let start = -Math.PI/2;
+  seq.forEach(code=>{ const val = counts[code]||0; const ang = (val/total)*Math.PI*2; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,start+ang,false); ctx.closePath(); ctx.fillStyle = colors[code]; ctx.fill(); if(code===1){ ctx.strokeStyle='#233040'; ctx.lineWidth=1; ctx.stroke(); } start += ang; });
 }
 
-  
+function updateStats(view){
+  const total=view.length; const counts={1:0,2:0,3:0,4:0,5:0};
+  view.forEach(r=>{ counts[computeState(r).code]++; });
+  const done = counts[2]+counts[3];
+  setText('s-total', total); setText('s-done', done); setText('s-bad', counts[5]); setText('s-pending', counts[4]);
+  const pct=(n,d)=> d? Math.round(n*1000/d)/10:0;
+  const impl=pct(done,total), badr=pct(counts[5],total), timer=pct(total-(counts[1]||0),total);
+  setHTML('s-pct', `画饼实现率：${impl}%  ·  烂尾率：${badr}%  ·  承诺定时率：${timer}%`);
+  drawPie(counts);
+  const legend = $('legendList'); if(!legend) return;
+  const names = {3:'按时出锅',2:'逾期出锅',4:'正在烘烤',5:'烂尾率',1:'吹毛率'};
+  const colors = {3:'#1f9d55',2:'#8bd28b',4:'#9aa7b2',5:'#e74c3c',1:'#ffffff'}; const seq=[3,2,4,5,1];
+  legend.innerHTML = seq.map(code=>`<li><span class="dot" style="background:${colors[code]}"></span>${names[code]}：<span class="val">${pct(counts[code], total)}%</span></li>`).join('');
+}
+
+// ============= 启动流程 =============
 (async function start(){
-  document.getElementById('version').textContent='微博：剑纯吧官博';
+  setText('version','微博：剑纯吧官博');
   const text=await loadDataText();
-  if(!text){
-    document.getElementById('notice').textContent='未检测到 data.tsv / data.csv，使用内置示例数据（在仓库根目录放任一文件可覆盖）';
-  }
+  if(!text){ setText('notice','未检测到 data.tsv / data.csv，使用内置示例数据（在仓库根目录放任一文件可覆盖）'); }
   const data=parseTable(text||fallbackText);
   buildTagbar(data);
   applyFilter(data);
@@ -377,7 +323,3 @@ function drawPie(counts){
 </script>
 </body>
 </html>
-
-
-
-
