@@ -137,12 +137,15 @@ function parseTable(text){
 ?
 /).filter(l=>l.trim()!=='');
   if(!lines.length) return [];
-  // 统计前几行不同分隔符出现次数，选最多的（支持 	, 逗号, 分号）
-  const sample = lines.slice(0, Math.min(5, lines.length));
-  const countDelim = (ch) => sample.reduce((acc,l)=> acc + (l.split(ch).length-1), 0);
-  const candidates = ['	', ',', ';'];
-  let delim = candidates[0], best = -1;
-  candidates.forEach(c=>{ const n=countDelim(c); if(n>best){ best=n; delim=c; } });
+  // 优先：首行含 Tab => 确认为 TSV；否则在逗号/分号里择优
+  const headerLine = lines[0];
+  let delim = '	';
+  if(!/	/.test(headerLine)){
+    const count = (s,ch)=> (s.split(ch).length-1);
+    const comma = count(headerLine, ',');
+    const semi  = count(headerLine, ';');
+    delim = semi>comma ? ';' : ',';
+  }
 
   const splitLine = (line) => {
     if(delim==='	') return line.split('	');
@@ -166,7 +169,6 @@ function parseTable(text){
   };
 
   let header = splitLine(lines[0]).map(h=>h.trim());
-  // 去除 BOM（某些 Excel 会在首字段前加 ﻿）
   if(header.length){ header[0] = header[0].replace(/^﻿/, ''); }
 
   return lines.slice(1).map(line=>{
