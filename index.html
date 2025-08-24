@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>剑网3画饼记录系统 · 承诺追踪站</title>
+  <title>剑网3画饼记录系统 </title>
   <style>
     :root{
       --bg:#0b0d10;--panel:#11161b;--muted:#8aa0b3;--text:#e7eef5;--brand:#6aa3ff;--ok:#2ecc71;--warn:#d35400;--bad:#e74c3c;--black:#e7eef5;--chip:#22303d;--chip-border:#2e3f51;--border:#1f2a36
@@ -98,7 +98,6 @@
 
     <!-- 标签筛选 -->
     <section class="panel">
-      <div class="meta" style="margin-bottom:6px">点击标签进行筛选，再次点击取消</div>
       <div class="tagbar" id="tagbar"></div>
     </section>
 
@@ -120,7 +119,7 @@
           <tbody></tbody>
         </table>
       </div>
-      <div class="footer"><span id="count">0</span> 条记录 · 数据来自 <code>data.tsv</code></div>
+      <div class="footer"><span id="count">0</span> 条记录 · 数据来自@剑纯吧官博 手工统计</div>
     </section>
 
   </div>
@@ -317,7 +316,7 @@ function updateStats(view){
 }
 
 (async function start(){
-  document.getElementById('version').textContent='静态模板 v3（CSV/TSV 兼容）';
+  document.getElementById('version').textContent='微博：剑纯吧官博';
   const text=await loadDataText();
   if(!text){
     document.getElementById('notice').textContent='未检测到 data.tsv / data.csv，使用内置示例数据（在仓库根目录放任一文件可覆盖）';
@@ -329,4 +328,5 @@ function updateStats(view){
 </script>
 </body>
 </html>
+
 
