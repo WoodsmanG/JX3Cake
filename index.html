@@ -132,16 +132,19 @@ async function loadDataText(){
 }
 
 // -------- 解析：自动判断分隔符，并对 CSV 处理引号/逗号 --------
-<script>
 function parseTable(text){
-  // 按行切分：支持 \r\n / \n
-  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  // 按行切分：支持 
+ / 
+
+  const lines = text.split(/
+?
+/).filter(l => l.trim() !== '');
   if (!lines.length) return [];
 
   // 分隔符选择：首行含 Tab => TSV；否则在逗号/分号里二选一
   const headerLine = lines[0];
-  let delim = '\t';
-  if (!/\t/.test(headerLine)) {
+  let delim = '	';
+  if (!/	/.test(headerLine)) {
     const count = (s, ch) => (s.split(ch).length - 1);
     const comma = count(headerLine, ',');
     const semi  = count(headerLine, ';');
@@ -150,7 +153,7 @@ function parseTable(text){
 
   // 单行切分：TSV 直接 split，CSV/SSV 用 RFC4180 兼容解析
   const splitLine = (line) => {
-    if (delim === '\t') return line.split('\t');
+    if (delim === '	') return line.split('	');
     const out = []; let cur = ''; let q = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
@@ -171,7 +174,7 @@ function parseTable(text){
 
   // 表头 & BOM 处理
   let header = splitLine(lines[0]).map(h => h.trim());
-  if (header.length) header[0] = header[0].replace(/^\ufeff/, '');
+  if (header.length) header[0] = header[0].replace(/^﻿/, '');
 
   // 行转对象；tags 用 | 分隔
   return lines.slice(1).map(line => {
@@ -182,8 +185,6 @@ function parseTable(text){
     return o;
   });
 }
-</script>
-
 
 // -------- 日期/状态工具 --------
 function d(s){ if(!s) return null; const t = String(s).replace(/\./g,'-'); const dt = new Date(t); return isNaN(dt)? null: new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()); }
@@ -304,4 +305,3 @@ function updateStats(view){
 </script>
 </body>
 </html>
-
