@@ -137,12 +137,16 @@ function parseTable(text){
 ?
 /).filter(l=>l.trim()!=='');
   if(!lines.length) return [];
-  // 简单判断：若首行包含 	 就当 TSV，否则 CSV
-  const delim = lines[0].includes('	') ? '	' : ',';
+  // 统计前几行不同分隔符出现次数，选最多的（支持 	, 逗号, 分号）
+  const sample = lines.slice(0, Math.min(5, lines.length));
+  const countDelim = (ch) => sample.reduce((acc,l)=> acc + (l.split(ch).length-1), 0);
+  const candidates = ['	', ',', ';'];
+  let delim = candidates[0], best = -1;
+  candidates.forEach(c=>{ const n=countDelim(c); if(n>best){ best=n; delim=c; } });
 
   const splitLine = (line) => {
     if(delim==='	') return line.split('	');
-    // CSV: RFC4180 解析
+    // CSV/SSV: RFC4180 解析（兼容分号分隔）
     const out=[]; let cur=''; let q=false;
     for(let i=0;i<line.length;i++){
       const ch=line[i];
@@ -150,10 +154,10 @@ function parseTable(text){
         if(ch==='"'){
           if(line[i+1]==='"'){ cur+='"'; i++; }
           else{ q=false; }
-        }else cur+=ch;
-      }else{
+        } else cur+=ch;
+      } else {
         if(ch==='"') q=true;
-        else if(ch===','){ out.push(cur); cur=''; }
+        else if(ch===delim){ out.push(cur); cur=''; }
         else cur+=ch;
       }
     }
@@ -161,7 +165,10 @@ function parseTable(text){
     return out;
   };
 
-  const header = splitLine(lines[0]).map(h=>h.trim());
+  let header = splitLine(lines[0]).map(h=>h.trim());
+  // 去除 BOM（某些 Excel 会在首字段前加 ﻿）
+  if(header.length){ header[0] = header[0].replace(/^﻿/, ''); }
+
   return lines.slice(1).map(line=>{
     const cells = splitLine(line);
     const o={}; header.forEach((h,i)=> o[h] = (cells[i]??'').trim());
