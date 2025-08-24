@@ -26,6 +26,14 @@
     .c-brown{color:var(--warn)}
     .pct{color:var(--muted);display:flex;gap:18px;flex-wrap:wrap;padding:8px 2px 0}
 
+/* 统计图布局 */
+.chartRow{display:flex;gap:24px;align-items:center;margin-top:10px}
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;color:#cdd9e5}
+.legend li{font-size:14px}
+.legend .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;border:1px solid #233040;vertical-align:middle}
+.legend .val{font-weight:800;color:var(--text)}
+
+
     .tagbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
 /* 让标签气泡内不换行，只在气泡之间换行 */
 .chip{
@@ -93,7 +101,7 @@
         <div class="stat c-red">烂尾 <span id="s-bad">0</span></div>
         <div class="stat c-brown">未到期 <span id="s-pending">0</span></div>
       </div>
-      <div class="pct" id="s-pct"></div> <div class="chartRow">   <canvas id="pie" width="360" height="240" style="background:#0f141a;border:1px solid #233040;border-radius:12px"></canvas>   <ul class="legend" id="legendList"></ul> </div>
+      <div class="chartRow">   <canvas id="pie" width="360" height="240" style="background:#0f141a;border:1px solid #233040;border-radius:12px"></canvas>   <ul class="legend" id="legendList"></ul> </div>
     </section>
 
     <!-- 标签筛选 -->
@@ -302,19 +310,60 @@ function applyFilter(all){
 }
 
 function updateStats(view){
-  const total=view.length; let done=0,bad=0,pending=0;
-  view.forEach(r=>{ const c=computeState(r).code; if(c===2||c===3) done++; if(c===5) bad++; if(c===4) pending++; });
+  const total=view.length;
+  const counts={1:0,2:0,3:0,4:0,5:0}; // 未定期/逾期完成/按时完成/进行中/烂尾
+  view.forEach(r=>{ counts[computeState(r).code]++; });
+
+  const done = counts[2]+counts[3];
   document.getElementById('s-total').textContent=total;
   document.getElementById('s-done').textContent=done;
-  document.getElementById('s-bad').textContent=bad;
-  document.getElementById('s-pending').textContent=pending;
+  document.getElementById('s-bad').textContent=counts[5];
+  document.getElementById('s-pending').textContent=counts[4];
+
   const pct=(n,d)=> d? Math.round(n*1000/d)/10:0;
-  const impl=pct(done,total), badr=pct(bad,total);
-  const timed=view.filter(r=>{const c=computeState(r).code; return c===2||c===3||c===4||c===5;}).length;
-  const timer=pct(timed,total);
+  const impl=pct(done,total), badr=pct(counts[5],total), timer=pct(total-(counts[1]||0),total);
   document.getElementById('s-pct').innerHTML=`画饼实现率：${impl}%  ·  烂尾率：${badr}%  ·  承诺定时率：${timer}%`;
+
+  // 画饼
+  drawPie(counts);
+
+  // 右侧图例百分比
+  const legend = document.getElementById('legendList');
+  const names = {3:'按时出锅',2:'逾期出锅',4:'正在烘烤',5:'烂尾率',1:'吹毛率'};
+  const colors = {3:'#1f9d55',2:'#8bd28b',4:'#9aa7b2',5:'#e74c3c',1:'#ffffff'};
+  const seq=[3,2,4,5,1];
+  legend.innerHTML = seq.map(code =>
+    `<li><span class="dot" style="background:${colors[code]}"></span>${names[code]}：<span class="val">${pct(counts[code], total)}%</span></li>`
+  ).join('');
 }
 
+
+function drawPie(counts){
+  const canvas = document.getElementById('pie'); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
+  const seq = [3,2,4,5,1]; // 绘制顺序：按时出锅/逾期出锅/正在烘烤/烂尾/吹毛
+  const colors = {3:'#1f9d55',2:'#8bd28b',4:'#9aa7b2',5:'#e74c3c',1:'#ffffff'};
+
+  const cx = canvas.width/2, cy = canvas.height/2;
+  const r = Math.min(cx,cy)-12;
+  let start = -Math.PI/2;
+
+  seq.forEach(code=>{
+    const val = counts[code]||0;
+    const ang = (val/total)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,start+ang,false);
+    ctx.closePath();
+    ctx.fillStyle = colors[code]; ctx.fill();
+    if(code===1){ ctx.strokeStyle='#233040'; ctx.lineWidth=1; ctx.stroke(); } // 白色扇形描边，避免融到底色
+    start += ang;
+  });
+}
+
+  
 (async function start(){
   document.getElementById('version').textContent='微博：剑纯吧官博';
   const text=await loadDataText();
@@ -328,6 +377,7 @@ function updateStats(view){
 </script>
 </body>
 </html>
+
 
 
 
