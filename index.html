@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>剑网3画饼记录系统 · 承诺追踪站</title>
+  <title>剑网3画饼记录系统</title>
   <style>
     :root{
       --bg:#0b0d10;--panel:#11161b;--muted:#8aa0b3;--text:#e7eef5;--brand:#6aa3ff;--ok:#1f9d55;--ok2:#8bd28b;--warn:#9aa7b2;--bad:#e74c3c;--black:#e7eef5;--chip:#22303d;--chip-border:#2e3f51;--border:#1f2a36;--gray:#9aa7b2;--white:#ffffff
@@ -116,6 +116,10 @@
   </div>
 
 <script>
+// =============================
+// 可配置：微博链接地址
+const WEIBO_URL = 'https://weibo.com/u/5722431373'; // ← 修改为目标地址
+
 // =============================
 // 内置最小示例，缺文件时用于自检
 const fallbackText = `id\ttitle\tcontent\tpromised_at\tis_timed\tdue_at\ttags\tcompleted_at\tnotes
@@ -295,7 +299,9 @@ function updateStats(view){
 
 // -------- 启动 --------
 (async function start(){
-  setText('version','微博：剑纯吧官博');
+  // 右上角微博名改为超链接（新功能）
+  setHTML('version', `微博：<a href="${WEIBO_URL}" target="_blank" rel="noopener">@剑纯吧官博</a>`);
+
   const text=await loadDataText();
   if(!text){ setText('notice','未检测到 data.tsv / data.csv，暂用内置示例'); }
   const data=parseTable(text||fallbackText);
@@ -304,6 +310,3 @@ function updateStats(view){
 </script>
 </body>
 </html>
-
-
-
