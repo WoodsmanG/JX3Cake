@@ -156,8 +156,6 @@ async function loadDataText(){
 
 // -------- 解析：自动判断分隔符，并对 CSV 处理引号/逗号 --------
 function parseTable(text){
-  // 按行切分：支持 
- / 
 
   const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
   if (!lines.length) return [];
@@ -326,3 +324,4 @@ function updateStats(view){
 </script>
 </body>
 </html>
+
