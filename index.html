@@ -133,12 +133,8 @@ async function loadDataText(){
 
 // -------- 解析：自动判断分隔符，并对 CSV 处理引号/逗号 --------
 function parseTable(text){
-  // 按行切分：支持 
- / 
 
-  const lines = text.split(/
-?
-/).filter(l => l.trim() !== '');
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
   if (!lines.length) return [];
 
   // 分隔符选择：首行含 Tab => TSV；否则在逗号/分号里二选一
@@ -305,3 +301,4 @@ function updateStats(view){
 </script>
 </body>
 </html>
+
