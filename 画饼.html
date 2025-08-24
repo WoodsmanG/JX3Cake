@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>剑网3画饼记录系统 · 承诺追踪站</title>
+  <style>
+    :root{
+      --bg:#0b0d10;--panel:#11161b;--muted:#8aa0b3;--text:#e7eef5;--brand:#6aa3ff;--ok:#2ecc71;--warn:#d35400;--bad:#e74c3c;--black:#e7eef5;--chip:#22303d;--chip-border:#2e3f51;--border:#1f2a36
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:14px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:48px;height:48px;border:2px solid var(--border);border-radius:10px;display:grid;place-items:center;font-weight:700}
+    h1{font-size:24px;margin:0}
+    .slogan{color:var(--muted);margin-top:2px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
+    .stat{background:#0f141a;border:1px solid #233040;border-radius:12px;padding:10px 12px;text-align:center;font-weight:700}
+    .c-black{color:var(--black)}
+    .c-green{color:var(--ok)}
+    .c-red{color:var(--bad)}
+    .c-brown{color:var(--warn)}
+    .pct{color:var(--muted);display:flex;gap:18px;flex-wrap:wrap;padding:8px 2px 0}
+
+    .tagbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    .chip{background:var(--chip);border:1px solid var(--chip-border);padding:4px 10px;border-radius:999px;color:#c7d6e6;cursor:pointer;user-select:none}
+    .chip.active{outline:2px solid var(--brand)}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px dashed #233040;vertical-align:top}
+    th{color:#b9c9da;text-align:left;position:sticky;top:0;background:var(--panel)}
+    tr:hover{background:#0f151b}
+    .big{font-weight:800}
+    .meta{color:var(--muted);font-size:12px}
+    .note{color:#d7e6ff}
+    .badge{font-size:12px;color:#b7c8db}
+
+    .state-green{color:var(--ok);font-weight:700}
+    .state-red{color:var(--bad);font-weight:700}
+    .state-brown{color:var(--warn);font-weight:700}
+
+    .footer{margin-top:12px;color:var(--muted)}
+    .notice{margin:8px 0;color:#ffd9a7}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 顶部：logo、标题、slogan -->
+    <header>
+      <div class="brand">
+        <div class="logo">logo</div>
+        <div>
+          <h1>剑网3画饼记录系统</h1>
+          <div class="slogan">来人，喂公子吃饼！</div>
+        </div>
+      </div>
+      <div class="meta" id="version"></div>
+    </header>
+
+    <!-- 数据统计（两行） -->
+    <section class="panel" id="statPanel">
+      <div class="stats">
+        <div class="stat c-black">总饼数 <span id="s-total">0</span></div>
+        <div class="stat c-green">已完成 <span id="s-done">0</span></div>
+        <div class="stat c-red">烂尾 <span id="s-bad">0</span></div>
+        <div class="stat c-brown">未到期 <span id="s-pending">0</span></div>
+      </div>
+      <div class="pct" id="s-pct"></div>
+    </section>
+
+    <!-- 标签筛选 -->
+    <section class="panel">
+      <div class="meta" style="margin-bottom:6px">点击标签进行筛选，再次点击取消</div>
+      <div class="tagbar" id="tagbar"></div>
+    </section>
+
+    <!-- 正文表格 -->
+    <section class="panel">
+      <div class="notice" id="notice"></div>
+      <div style="overflow:auto; max-height:70vh;">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th style="width:30%">画饼内容</th>
+              <th style="width:15%">画饼时间</th>
+              <th style="width:20%">标签</th>
+              <th style="width:10%">是否承诺完成时间</th>
+              <th style="width:15%">画饼现状</th>
+              <th style="width:10%">备注</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="footer"><span id="count">0</span> 条记录 · 数据来自 <code>data.tsv</code></div>
+    </section>
+
+  </div>
+
+<script>
+/* =============================
+数据文件支持两种：data.tsv（制表符）或 data.csv（逗号，UTF-8）。
+字段：id,title,content,promised_at,is_timed,due_at,tags,completed_at,notes
+- is_timed: 是/否 或 true/false
+- tags: 用 | 分隔
+- 日期：YYYY-MM-DD 或 YYYY.MM.DD
+示例（TSV 形态）：
+p_2025_0001	修复bug	我们计划在一周内修复50个bug，来源是……	2025-08-24	是	2025-08-31	#bug修复|#外观优化|#布料		等待测试
+============================= */
+
+const fallbackText = `id	title	content	promised_at	is_timed	due_at	tags	completed_at	notes
+p_2025_0001	修复bug	我们计划在一周内修复50个bug，来源是……	2025-08-24	是	2025-08-31	#bug修复|#外观优化|#布料		等待测试
+p_2025_0002	反外挂数据公开	9月底前上线反外挂2.0，并公开封禁数据	2025-07-01	是	2025-09-30	#反外挂	2025-10-02	已发布统计
+p_2025_0003	角色外观优化	将改进材质	2025-07-12	否		#外观优化		—`;
+
+// -------- 读取：优先 data.tsv，其次 data.csv --------
+async function loadDataText(){
+  const tryFetch = async (name) => {
+    try {
+      const r = await fetch(name, {cache:'no-store'});
+      if (!r.ok) throw 0;
+      const t = await r.text();
+      if (!t.trim()) throw 0;
+      return t;
+    } catch { return null; }
+  };
+  return await tryFetch('data.tsv') ?? await tryFetch('data.csv');
+}
+
+// -------- 解析：自动判断分隔符，并对 CSV 处理引号/逗号 --------
+function parseTable(text){
+  const lines = text.split(/
+?
+/).filter(l=>l.trim()!=='');
+  if(!lines.length) return [];
+  // 简单判断：若首行包含 	 就当 TSV，否则 CSV
+  const delim = lines[0].includes('	') ? '	' : ',';
+
+  const splitLine = (line) => {
+    if(delim==='	') return line.split('	');
+    // CSV: RFC4180 解析
+    const out=[]; let cur=''; let q=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(q){
+        if(ch==='"'){
+          if(line[i+1]==='"'){ cur+='"'; i++; }
+          else{ q=false; }
+        }else cur+=ch;
+      }else{
+        if(ch==='"') q=true;
+        else if(ch===','){ out.push(cur); cur=''; }
+        else cur+=ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  };
+
+  const header = splitLine(lines[0]).map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const cells = splitLine(line);
+    const o={}; header.forEach((h,i)=> o[h] = (cells[i]??'').trim());
+    o.tags = o.tags ? o.tags.split('|').map(s=>s.trim()).filter(Boolean): [];
+    return o;
+  });
+}
+
+// -------- 日期/状态工具 --------
+function d(s){ if(!s) return null; const t = String(s).replace(/\./g,'-'); const dt = new Date(t); return isNaN(dt)? null: new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()); }
+function today(){ const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
+function daysBetween(a,b){ if(!a||!b) return null; return Math.floor((b-a)/86400000); }
+function fmtDate(s){ const dt=d(s); if(!dt) return ''; const mm=String(dt.getMonth()+1).padStart(2,'0'); const dd=String(dt.getDate()).padStart(2,'0'); return `${dt.getFullYear()}.${mm}.${dd}`; }
+
+function computeState(row){
+  const now=today();
+  const promised=d(row.promised_at);
+  const due=d(row.due_at);
+  const completed=d(row.completed_at);
+  const isTimed=/^是|true$/i.test(row.is_timed||'');
+  if(!isTimed || !due){
+    const days=daysBetween(promised,now)??0;
+    return {code:1,label:'未定期',color:'red',text:`已画饼${days}天`};
+  }
+  if(completed){
+    if(completed>due){
+      const days=daysBetween(due,completed)??0;
+      return {code:2,label:'逾期完成',color:'red',text:`超期${days}天完成`};
+    }else{
+      return {code:3,label:'完成',color:'green',text:'完成'};
+    }
+  }else{
+    if(now<=due){
+      const days=daysBetween(now,due)??0;
+      return {code:4,label:'进行中',color:'brown',text:`还剩${days}天`};
+    }else{
+      const days=daysBetween(due,now)??0;
+      return {code:5,label:'烂尾',color:'red',text:`已烂尾${days}天`};
+    }
+  }
+}
+
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+
+function renderTable(rows){
+  const tbody=document.querySelector('#tbl tbody');
+  tbody.innerHTML='';
+  rows.forEach(r=>{
+    const st=computeState(r);
+    const tr=document.createElement('tr');
+
+    const c1=document.createElement('td');
+    c1.innerHTML=`<div class="big">${esc(r.title)}</div><div>${esc(r.content)}</div>`;
+
+    const c2=document.createElement('td');
+    c2.textContent=fmtDate(r.promised_at);
+
+    const c3=document.createElement('td');
+    c3.innerHTML=(r.tags||[]).map(t=>`<span class="chip" style="cursor:default">${esc(t)}</span>`).join(' ');
+
+    const c4=document.createElement('td');
+    const timed=(/^是|true$/i.test(r.is_timed||'')) && r.due_at; 
+    c4.textContent=timed? '是':'否';
+
+    const c5=document.createElement('td');
+    const cls=st.color==='green'?'state-green':(st.color==='brown'?'state-brown':'state-red');
+    c5.innerHTML=`<span class="${cls}">${esc(st.text)}</span>`;
+
+    const c6=document.createElement('td');
+    c6.innerHTML=`<span class="note">${esc(r.notes)}</span>`;
+
+    tr.append(c1,c2,c3,c4,c5,c6);
+    tbody.appendChild(tr);
+  });
+  document.getElementById('count').textContent=rows.length;
+}
+
+function buildTagbar(all){
+  const set=new Set();
+  all.forEach(r=> (r.tags||[]).forEach(t=>set.add(t)) );
+  const bar=document.getElementById('tagbar');
+  bar.innerHTML='';
+  [...set].sort().forEach(tag=>{
+    const s=document.createElement('span');
+    s.className='chip'; s.textContent=tag; s.dataset.tag=tag;
+    s.addEventListener('click',()=>{
+      if(s.classList.contains('active')){ s.classList.remove('active'); currentTag=null; applyFilter(all); }
+      else{ [...bar.querySelectorAll('.chip')].forEach(x=>x.classList.remove('active')); s.classList.add('active'); currentTag=tag; applyFilter(all); }
+    });
+    bar.appendChild(s);
+  });
+}
+
+let currentTag=null;
+function applyFilter(all){
+  const view=currentTag? all.filter(r=> (r.tags||[]).includes(currentTag) ): all;
+  renderTable(view);
+  updateStats(view);
+}
+
+function updateStats(view){
+  const total=view.length; let done=0,bad=0,pending=0;
+  view.forEach(r=>{ const c=computeState(r).code; if(c===2||c===3) done++; if(c===5) bad++; if(c===4) pending++; });
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-done').textContent=done;
+  document.getElementById('s-bad').textContent=bad;
+  document.getElementById('s-pending').textContent=pending;
+  const pct=(n,d)=> d? Math.round(n*1000/d)/10:0;
+  const impl=pct(done,total), badr=pct(bad,total);
+  const timed=view.filter(r=>{const c=computeState(r).code; return c===2||c===3||c===4||c===5;}).length;
+  const timer=pct(timed,total);
+  document.getElementById('s-pct').innerHTML=`画饼实现率：${impl}%  ·  烂尾率：${badr}%  ·  承诺定时率：${timer}%`;
+}
+
+(async function start(){
+  document.getElementById('version').textContent='静态模板 v3（CSV/TSV 兼容）';
+  const text=await loadDataText();
+  if(!text){
+    document.getElementById('notice').textContent='未检测到 data.tsv / data.csv，使用内置示例数据（在仓库根目录放任一文件可覆盖）';
+  }
+  const data=parseTable(text||fallbackText);
+  buildTagbar(data);
+  applyFilter(data);
+})();
+</script>
+</body>
+</html>
