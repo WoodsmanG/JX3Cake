@@ -27,7 +27,31 @@
     .pct{color:var(--muted);display:flex;gap:18px;flex-wrap:wrap;padding:8px 2px 0}
 
     .tagbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
-    .chip{background:var(--chip);border:1px solid var(--chip-border);padding:4px 10px;border-radius:999px;color:#c7d6e6;cursor:pointer;user-select:none}
+/* 让标签气泡内不换行，只在气泡之间换行 */
+.chip{
+  background:var(--chip);
+  border:1px solid var(--chip-border);
+  padding:4px 10px;
+  border-radius:999px;
+  color:#c7d6e6;
+  cursor:pointer;
+  user-select:none;
+
+  /* 关键：禁止在 CJK 字符之间断行 */
+  display:inline-flex;
+  align-items:center;
+  white-space:nowrap;
+  word-break:keep-all;
+  line-height:1.1;
+}
+
+/* 用于表格“标签”那一列的内层容器 */
+.tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
     .chip.active{outline:2px solid var(--brand)}
 
     table{width:100%;border-collapse:collapse}
@@ -232,7 +256,11 @@ function renderTable(rows){
     c2.textContent=fmtDate(r.promised_at);
 
     const c3=document.createElement('td');
-    c3.innerHTML=(r.tags||[]).map(t=>`<span class="chip" style="cursor:default">${esc(t)}</span>`).join(' ');
+    c3.innerHTML = `<div class="tags">${
+  (r.tags||[]).map(t=>`<span class="chip" style="cursor:default">${esc(t)}</span>`).join('')
+}</div>`;
+
+
 
     const c4=document.createElement('td');
     const timed=(/^是|true$/i.test(r.is_timed||'')) && r.due_at; 
@@ -301,3 +329,4 @@ function updateStats(view){
 </script>
 </body>
 </html>
+
