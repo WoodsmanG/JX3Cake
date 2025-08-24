@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>剑网3画饼记录系统</title>
+  <title>剑网3画饼记录系统 · 承诺追踪站</title>
   <style>
-    :root{ --bg:#0b0d10; --panel:#11161b; --muted:#8aa0b3; --text:#e7eef5; --brand:#6aa3ff; --ok:#2ecc71; --warn:#d35400; --bad:#e74c3c; --black:#e7eef5; --chip:#22303d; --chip-border:#2e3f51; --border:#1f2a36 }
+    :root{
+      --bg:#0b0d10;--panel:#11161b;--muted:#8aa0b3;--text:#e7eef5;--brand:#6aa3ff;--ok:#1f9d55;--ok2:#8bd28b;--warn:#d35400;--bad:#e74c3c;--black:#e7eef5;--chip:#22303d;--chip-border:#2e3f51;--border:#1f2a36;--gray:#9aa7b2;--white:#ffffff
+    }
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:14px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial}
     a{color:var(--brand);text-decoration:none}
     a:hover{text-decoration:underline}
@@ -18,9 +20,12 @@
     .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
     .stat{background:#0f141a;border:1px solid #233040;border-radius:12px;padding:10px 12px;text-align:center;font-weight:700}
-    .c-black{color:var(--black)} .c-green{color:var(--ok)} .c-red{color:var(--bad)} .c-brown{color:var(--warn)}
-
+    .c-black{color:var(--black)}
+    .c-green{color:var(--ok)}
+    .c-red{color:var(--bad)}
+    .c-brown{color:var(--warn)}
     .pct{color:var(--muted);display:flex;gap:18px;flex-wrap:wrap;padding:8px 2px 0}
+
     /* 统计图布局 */
     .chartRow{display:flex;gap:24px;align-items:center;margin-top:10px}
     .legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;color:#cdd9e5}
@@ -41,7 +46,6 @@
     .big{font-weight:800}
     .meta{color:var(--muted);font-size:12px}
     .note{color:#d7e6ff;word-break:break-all}
-    .badge{font-size:12px;color:#b7c8db}
 
     .state-green{color:var(--ok);font-weight:700}
     .state-red{color:var(--bad);font-weight:700}
@@ -53,7 +57,7 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 顶部：logo、标题、slogan -->
+    <!-- 顶部 -->
     <header>
       <div class="brand">
         <div class="logo">logo</div>
@@ -65,7 +69,7 @@
       <div class="meta" id="version"></div>
     </header>
 
-    <!-- 统计面板 -->
+    <!-- 数据统计 -->
     <section class="panel" id="statPanel">
       <div class="stats">
         <div class="stat c-black">总饼数 <span id="s-total">0</span></div>
@@ -73,7 +77,6 @@
         <div class="stat c-red">烂尾 <span id="s-bad">0</span></div>
         <div class="stat c-brown">未到期 <span id="s-pending">0</span></div>
       </div>
-      <!-- 汇总百分比行（之前缺失，导致脚本 set innerHTML 到 null 报错） -->
       <div class="pct" id="s-pct"></div>
       <div class="chartRow">
         <canvas id="pie" width="360" height="240" style="background:#0f141a;border:1px solid #233040;border-radius:12px"></canvas>
@@ -83,6 +86,7 @@
 
     <!-- 标签筛选 -->
     <section class="panel">
+      <div class="meta" style="margin-bottom:6px">点击标签进行筛选，再次点击取消</div>
       <div class="tagbar" id="tagbar"></div>
     </section>
 
@@ -93,63 +97,49 @@
         <table id="tbl">
           <thead>
             <tr>
-              <th style="width:36%" title="承诺标题 + 详细内容">画饼内容</th>
-              <th style="width:14%" title="承诺时间">画饼时间</th>
-              <th style="width:22%" title="标签，可多选">标签</th>
-              <th style="width:12%" title="是否约定完成日期">是否承诺完成时间</th>
-              <th style="width:10%" title="根据时间自动计算现状">画饼现状</th>
-              <th style="width:16%" title="备注与证据链接">备注</th>
+              <th style="width:36%">画饼内容</th>
+              <th style="width:14%">画饼时间</th>
+              <th style="width:22%">标签</th>
+              <th style="width:12%">预计出锅</th>
+              <th style="width:10%">画饼现状</th>
+              <th style="width:16%">备注</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
-      <div class="footer"><span id="count">0</span> 条记录 · 数据来自@剑纯吧官博 手工统计</div>
+      <div class="footer"><span id="count">0</span> 条记录 · 数据来自 <code>data.tsv</code> 或 <code>data.csv</code></div>
     </section>
 
   </div>
 
 <script>
-/* =============================
-数据文件支持两种：data.tsv（制表符）或 data.csv（逗号，UTF-8）。
-字段：id,title,content,promised_at,is_timed,due_at,tags,completed_at,notes
-- is_timed: 是/否 或 true/false
-- tags: 用 | 分隔
-- 日期：YYYY-MM-DD 或 YYYY.MM.DD
-示例（TSV 形态）：
-p_2025_0001	修复bug	我们计划在一周内修复50个bug，来源是……	2025-08-24	是	2025-08-31	#bug修复|#外观优化|#布料		等待测试
-============================= */
-
+// =============================
+// 内置最小示例，缺文件时用于自检
 const fallbackText = `id\ttitle\tcontent\tpromised_at\tis_timed\tdue_at\ttags\tcompleted_at\tnotes
-p_2025_0001\t修复bug\t我们计划在一周内修复50个bug，来源是……\t2025-08-24\t是\t2025-08-31\t#bug修复|#外观优化|#布料\t\t等待测试
-p_2025_0002\t反外挂数据公开\t9月底前上线反外挂2.0，并公开封禁数据\t2025-07-01\t是\t2025-09-30\t#反外挂\t2025-10-02\t已发布统计
-p_2025_0003\t角色外观优化\t将改进材质\t2025-07-12\t否\t\t#外观优化\t\t—`;
+p_2025_0001\t修复bug\t我们计划在一周内修复50个bug，来源是……\t2025-08-24\t是\t2025-08-31\t#bug修复|#外观优化|#布料\t\t等待测试`;
 
-// ------- DOM 安全助手：避免因缺失元素而抛错 -------
+// ------- DOM 安全助手 -------
 const $ = (id)=> document.getElementById(id);
-const setText = (id, text)=>{ const el=$(id); if(el) el.textContent = text; else console.warn('[缺失元素]', id); };
-const setHTML = (id, html)=>{ const el=$(id); if(el) el.innerHTML = html; else console.warn('[缺失元素]', id); };
+const setText = (id, text)=>{ const el=$(id); if(el) el.textContent = text; };
+const setHTML = (id, html)=>{ const el=$(id); if(el) el.innerHTML = html; };
 
-// -------- 读取：优先 data.tsv，其次 data.csv --------
+// -------- 数据加载：优先 TSV，再 CSV；禁缓存 --------
 async function loadDataText(){
   const tryFetch = async (name) => {
     try {
       const r = await fetch(name, {cache:'no-store'});
-      if (!r.ok) throw 0;
-      const t = await r.text();
-      if (!t.trim()) throw 0;
-      return t;
+      if (!r.ok) throw 0; const t = await r.text();
+      if (!t.trim()) throw 0; return t;
     } catch { return null; }
   };
   return await tryFetch('data.tsv') ?? await tryFetch('data.csv');
 }
 
-// -------- 解析：自动判断分隔符，并对 CSV 处理引号/逗号 --------
+// -------- 解析器：自动判断分隔符；CSV 兼容 RFC4180 引号 --------
 function parseTable(text){
   const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
   if (!lines.length) return [];
-
-  // 分隔符选择：首行含 Tab => TSV；否则在逗号/分号里二选一
   const headerLine = lines[0];
   let delim = '\t';
   if (!/\t/.test(headerLine)) {
@@ -158,8 +148,6 @@ function parseTable(text){
     const semi  = count(headerLine, ';');
     delim = semi > comma ? ';' : ',';
   }
-
-  // 单行切分：TSV 直接 split，CSV/SSV 用 RFC4180 兼容解析
   const splitLine = (line) => {
     if (delim === '\t') return line.split('\t');
     const out = []; let cur = ''; let q = false;
@@ -174,15 +162,10 @@ function parseTable(text){
         else cur += ch;
       }
     }
-    out.push(cur);
-    return out;
+    out.push(cur); return out;
   };
-
-  // 表头 & BOM 处理
   let header = splitLine(lines[0]).map(h => h.trim());
   if (header.length) header[0] = header[0].replace(/^\ufeff/, '');
-
-  // 行转对象；tags 用 | 分隔
   return lines.slice(1).map(line => {
     const cells = splitLine(line);
     const o = {}; header.forEach((h, i) => o[h] = (cells[i] ?? '').trim());
@@ -191,45 +174,29 @@ function parseTable(text){
   });
 }
 
-// -------- 日期/状态工具 --------
+// -------- 日期与状态 --------
 function d(s){ if(!s) return null; const t = String(s).replace(/\./g,'-'); const dt = new Date(t); return isNaN(dt)? null: new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()); }
 function today(){ const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
-function daysBetween(a,b){ if(!a||!b) return null; return Math.floor((b-a)/86400000); }
+function daysBetween(a,b){ if(!a||!b) return 0; return Math.floor((b-a)/86400000); }
 function fmtDate(s){ const dt=d(s); if(!dt) return ''; const mm=String(dt.getMonth()+1).padStart(2,'0'); const dd=String(dt.getDate()).padStart(2,'0'); return `${dt.getFullYear()}.${mm}.${dd}`; }
 
 function computeState(row){
-  const now=today();
-  const promised=d(row.promised_at);
-  const due=d(row.due_at);
-  const completed=d(row.completed_at);
+  const now=today(), promised=d(row.promised_at), due=d(row.due_at), completed=d(row.completed_at);
   const isTimed=/^(是|true)$/i.test(row.is_timed||'');
-  if(!isTimed || !due){
-    const days=daysBetween(promised,now)??0;
-    return {code:1,label:'未定期',color:'red',text:`已画饼${days}天`};
-  }
+  if(!isTimed || !due){ return {code:1,text:`已画饼${daysBetween(promised,now)}天`,cls:'state-red'}; }
   if(completed){
-    if(completed>due){
-      const days=daysBetween(due,completed)??0;
-      return {code:2,label:'逾期完成',color:'red',text:`超期${days}天完成`};
-    }else{
-      return {code:3,label:'完成',color:'green',text:'完成'};
-    }
-  }else{
-    if(now<=due){
-      const days=daysBetween(now,due)??0;
-      return {code:4,label:'进行中',color:'brown',text:`还剩${days}天`};
-    }else{
-      const days=daysBetween(due,now)??0;
-      return {code:5,label:'烂尾',color:'red',text:`已烂尾${days}天`};
-    }
+    if(completed>due) return {code:2,text:`超期${daysBetween(due,completed)}天完成`,cls:'state-red'};
+    return {code:3,text:'完成',cls:'state-green'};
   }
+  if(now<=due) return {code:4,text:`还剩${daysBetween(now,due)}天`,cls:'state-brown'};
+  return {code:5,text:`已烂尾${daysBetween(due,now)}天`,cls:'state-red'};
 }
 
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 
+// -------- 表格渲染（包含“预计出锅”列） --------
 function renderTable(rows){
-  const tbody=document.querySelector('#tbl tbody');
-  if(!tbody){ console.warn('缺少表格容器 #tbl tbody'); return; }
+  const tbody=document.querySelector('#tbl tbody'); if(!tbody) return;
   tbody.innerHTML='';
   rows.forEach(r=>{
     const st=computeState(r);
@@ -238,38 +205,31 @@ function renderTable(rows){
     const c1=document.createElement('td');
     c1.innerHTML=`<div class="big">${esc(r.title)}</div><div>${esc(r.content)}</div>`;
 
-    const c2=document.createElement('td');
-    c2.textContent=fmtDate(r.promised_at);
+    const c2=document.createElement('td'); c2.textContent=fmtDate(r.promised_at);
 
     const c3=document.createElement('td');
     c3.innerHTML = `<div class="tags">${(r.tags||[]).map(t=>`<span class="chip" style="cursor:default">${esc(t)}</span>`).join('')}</div>`;
 
-    const c4=document.createElement('td');
-    const timed=(/^(是|true)$/i.test(r.is_timed||'')) && r.due_at; 
-    c4.textContent=timed? '是':'否';
+    const c4=document.createElement('td'); // 预计出锅
+    c4.textContent = r.due_at ? fmtDate(r.due_at) : '无具体时间';
 
     const c5=document.createElement('td');
-    const cls=st.color==='green'?'state-green':(st.color==='brown'?'state-brown':'state-red');
-    c5.innerHTML=`<span class="${cls}">${esc(st.text)}</span>`;
+    c5.innerHTML=`<span class="${st.cls}">${esc(st.text)}</span>`;
 
-    const c6=document.createElement('td');
-    c6.innerHTML=`<span class="note">${esc(r.notes)}</span>`;
+    const c6=document.createElement('td'); c6.innerHTML=`<span class="note">${esc(r.notes)}</span>`;
 
-    tr.append(c1,c2,c3,c4,c5,c6);
-    tbody.appendChild(tr);
+    tr.append(c1,c2,c3,c4,c5,c6); tbody.appendChild(tr);
   });
   setText('count', rows.length);
 }
 
+// -------- 标签筛选 --------
+let currentTag=null;
 function buildTagbar(all){
-  const set=new Set();
-  all.forEach(r=> (r.tags||[]).forEach(t=>set.add(t)) );
-  const bar=$('tagbar');
-  if(!bar) return;
-  bar.innerHTML='';
+  const set=new Set(); all.forEach(r=> (r.tags||[]).forEach(t=>set.add(t)) );
+  const bar=$('tagbar'); if(!bar) return; bar.innerHTML='';
   [...set].sort().forEach(tag=>{
-    const s=document.createElement('span');
-    s.className='chip'; s.textContent=tag; s.dataset.tag=tag;
+    const s=document.createElement('span'); s.className='chip'; s.textContent=tag; s.dataset.tag=tag;
     s.addEventListener('click',()=>{
       if(s.classList.contains('active')){ s.classList.remove('active'); currentTag=null; applyFilter(all); }
       else{ [...bar.querySelectorAll('.chip')].forEach(x=>x.classList.remove('active')); s.classList.add('active'); currentTag=tag; applyFilter(all); }
@@ -278,47 +238,50 @@ function buildTagbar(all){
   });
 }
 
-let currentTag=null;
 function applyFilter(all){
   const view=currentTag? all.filter(r=> (r.tags||[]).includes(currentTag) ): all;
-  renderTable(view);
-  updateStats(view);
+  renderTable(view); updateStats(view);
 }
 
+// -------- 统计与饼图 --------
 function drawPie(counts){
-  const canvas = $('pie'); if(!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const canvas = $('pie'); if(!canvas) return; const ctx = canvas.getContext('2d');
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
-  const seq = [3,2,4,5,1]; // 按时/逾期/进行中/烂尾/未定期
-  const colors = {3:'#1f9d55',2:'#8bd28b',4:'#9aa7b2',5:'#e74c3c',1:'#ffffff'};
+  const seq = [3,2,4,5,1];
+  const colors = {3: getComputedStyle(document.documentElement).getPropertyValue('--ok').trim() || '#1f9d55',
+                  2: getComputedStyle(document.documentElement).getPropertyValue('--ok2').trim() || '#8bd28b',
+                  4: getComputedStyle(document.documentElement).getPropertyValue('--gray').trim() || '#9aa7b2',
+                  5: getComputedStyle(document.documentElement).getPropertyValue('--bad').trim() || '#e74c3c',
+                  1: '#ffffff'};
   const cx = canvas.width/2, cy = canvas.height/2; const r = Math.min(cx,cy)-12; let start = -Math.PI/2;
-  seq.forEach(code=>{ const val = counts[code]||0; const ang = (val/total)*Math.PI*2; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,start+ang,false); ctx.closePath(); ctx.fillStyle = colors[code]; ctx.fill(); if(code===1){ ctx.strokeStyle='#233040'; ctx.lineWidth=1; ctx.stroke(); } start += ang; });
+  seq.forEach(code=>{ const val = counts[code]||0; const ang = (val/total)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,start+ang,false); ctx.closePath(); ctx.fillStyle = colors[code]; ctx.fill(); if(code===1){ ctx.strokeStyle='#233040'; ctx.lineWidth=1; ctx.stroke(); } start += ang; });
 }
 
 function updateStats(view){
-  const total=view.length; const counts={1:0,2:0,3:0,4:0,5:0};
-  view.forEach(r=>{ counts[computeState(r).code]++; });
-  const done = counts[2]+counts[3];
-  setText('s-total', total); setText('s-done', done); setText('s-bad', counts[5]); setText('s-pending', counts[4]);
+  const total=view.length; const counts={1:0,2:0,3:0,4:0,5:0}; view.forEach(r=>{ counts[computeState(r).code]++; });
+  const done = counts[2]+counts[3]; setText('s-total', total); setText('s-done', done); setText('s-bad', counts[5]); setText('s-pending', counts[4]);
   const pct=(n,d)=> d? Math.round(n*1000/d)/10:0;
   const impl=pct(done,total), badr=pct(counts[5],total), timer=pct(total-(counts[1]||0),total);
   setHTML('s-pct', `画饼实现率：${impl}%  ·  烂尾率：${badr}%  ·  承诺定时率：${timer}%`);
   drawPie(counts);
-  const legend = $('legendList'); if(!legend) return;
-  const names = {3:'按时出锅',2:'逾期出锅',4:'正在烘烤',5:'烂尾率',1:'吹毛率'};
-  const colors = {3:'#1f9d55',2:'#8bd28b',4:'#9aa7b2',5:'#e74c3c',1:'#ffffff'}; const seq=[3,2,4,5,1];
-  legend.innerHTML = seq.map(code=>`<li><span class="dot" style="background:${colors[code]}"></span>${names[code]}：<span class="val">${pct(counts[code], total)}%</span></li>`).join('');
+  const legend = $('legendList'); if(!legend) return; const names = {3:'按时出锅',2:'逾期出锅',4:'正在烘烤',5:'烂尾率',1:'吹毛率'};
+  const colors = {3: getComputedStyle(document.documentElement).getPropertyValue('--ok').trim() || '#1f9d55',
+                  2: getComputedStyle(document.documentElement).getPropertyValue('--ok2').trim() || '#8bd28b',
+                  4: getComputedStyle(document.documentElement).getPropertyValue('--gray').trim() || '#9aa7b2',
+                  5: getComputedStyle(document.documentElement).getPropertyValue('--bad').trim() || '#e74c3c',
+                  1: '#ffffff'};
+  const seq=[3,2,4,5,1]; legend.innerHTML = seq.map(code=>`<li><span class="dot" style="background:${colors[code]}"></span>${names[code]}：<span class="val">${pct(counts[code], total)}%</span></li>`).join('');
 }
 
-// ============= 启动流程 =============
+// -------- 启动 --------
 (async function start(){
   setText('version','微博：剑纯吧官博');
   const text=await loadDataText();
-  if(!text){ setText('notice','未检测到 data.tsv / data.csv，使用内置示例数据（在仓库根目录放任一文件可覆盖）'); }
+  if(!text){ setText('notice','未检测到 data.tsv / data.csv，暂用内置示例'); }
   const data=parseTable(text||fallbackText);
-  buildTagbar(data);
-  applyFilter(data);
+  buildTagbar(data); applyFilter(data);
 })();
 </script>
 </body>
